@@ -13,3 +13,8 @@ Godot 4 版本 —— 《勇者传说》
 > 人物素材： https://brullov.itch.io/generic-char-asset  
 > 环境素材： https://anokolisa.itch.io/sidescroller-pixelart-sprites-asset-pack-forest-16x16
 
+**仓库**
+
+gitee：https://gitee.com/coffeekiller002/legend_of_the_brave
+
+github：https://github.com/CafeKiller/legend_of_the_brave
