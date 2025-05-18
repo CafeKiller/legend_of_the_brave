@@ -20,14 +20,11 @@ func hand_camera_limit():
 	# camera_2d.limit_bottom = used.end.y * tile_size.y;
 	# camera_2d.limit_left = used.position.x * tile_size.x;
 
-
+	# FIXBUG: tile_map 的 position 会影响限位，需要额外加上
 	camera_2d.limit_top = used.position.y * tile_size.y + tile_map.position.y;
 	camera_2d.limit_right = used.end.x * tile_size.x + tile_map.position.x;
 	camera_2d.limit_bottom = used.end.y * tile_size.y + tile_map.position.y;
 	camera_2d.limit_left = used.position.x * tile_size.x + tile_map.position.x;
 
-#	print_debug("camera_2d.limit_righ ---||| ", used.end.x * tile_size.x);
-#	print_debug("camera_2d.limit_bottom ---||| ", used.end.y * tile_size.y);
-#	print_debug("camera_2d.limit_left ---||| ", used.position.x * tile_size.x);
 	# FIXBUG：首次加载时若位置处于边缘，相机会出现比较突兀的拉伸动画
-	# camera_2d.reset_smoothing();
+	camera_2d.reset_smoothing();
