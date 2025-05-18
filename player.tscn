@@ -1,10 +1,10 @@
 [gd_scene load_steps=9 format=3 uid="uid://b1e1l8bwih17g"]
 
 [ext_resource type="Script" path="res://player.gd" id="1_2ceyw"]
-[ext_resource type="Texture2D" uid="uid://dmh0lrokvnfcn" path="res://char_blue_1.png" id="1_unvnh"]
+[ext_resource type="Texture2D" uid="uid://dmh0lrokvnfcn" path="res://assets/char_blue_1.png" id="2_obct5"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tjfcn"]
-size = Vector2(10, 32)
+size = Vector2(10, 27)
 
 [sub_resource type="Animation" id="Animation_syqj7"]
 length = 0.001
@@ -181,13 +181,13 @@ script = ExtResource("1_2ceyw")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -28)
-texture = ExtResource("1_unvnh")
+texture = ExtResource("2_obct5")
 hframes = 6
 region_enabled = true
 region_rect = Rect2(0, 0, 336, 56)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -16)
+position = Vector2(0, -13.5)
 shape = SubResource("RectangleShape2D_tjfcn")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
