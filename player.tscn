@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3 uid="uid://b1e1l8bwih17g"]
 
-[ext_resource type="Script" path="res://player.gd" id="1_2ceyw"]
+[ext_resource type="Script" uid="uid://b2f02jdk3srs3" path="res://player.gd" id="1_2ceyw"]
 [ext_resource type="Texture2D" uid="uid://dmh0lrokvnfcn" path="res://assets/char_blue_1.png" id="2_obct5"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tjfcn"]
@@ -170,10 +170,10 @@ tracks/2/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_2jmmf"]
 _data = {
-"RESET": SubResource("Animation_syqj7"),
-"idle": SubResource("Animation_qestf"),
-"jump": SubResource("Animation_e23gq"),
-"running": SubResource("Animation_3as30")
+&"RESET": SubResource("Animation_syqj7"),
+&"idle": SubResource("Animation_qestf"),
+&"jump": SubResource("Animation_e23gq"),
+&"running": SubResource("Animation_3as30")
 }
 
 [node name="Player" type="CharacterBody2D"]
@@ -192,5 +192,11 @@ shape = SubResource("RectangleShape2D_tjfcn")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_2jmmf")
+&"": SubResource("AnimationLibrary_2jmmf")
 }
+
+[node name="CoyotTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
+
+[node name="JumpRequestTimer" type="Timer" parent="."]
