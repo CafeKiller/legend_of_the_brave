@@ -27,7 +27,7 @@ var is_first_tick := false;
 
 @onready var sprite_2d: Sprite2D = $Sprite2D;
 @onready var animation_player: AnimationPlayer = $AnimationPlayer;
-@onready var coyot_timer: Timer = $CoyotTimer;
+@onready var coyote_timer: Timer = $CoyotTimer;
 @onready var jump_request_timer: Timer = $JumpRequestTimer;
 
 # 输入监听
@@ -116,7 +116,7 @@ func get_next_state(state: State) -> State:
 				return State.IDEL;
 			
 		State.JUMP:
-			if velocity.y <= 0:
+			if velocity.y >= 0:
 				return State.FALL;
 			
 		State.FALL:
@@ -135,7 +135,7 @@ func get_next_state(state: State) -> State:
 func transition_state(from: State, to: State) -> void:
 	
 	if from not in GROUND_STATES and to in GROUND_STATES:
-		coyot_timer.stop();
+		coyote_timer.stop();
 	
 	match to:
 		State.IDEL:
@@ -150,7 +150,7 @@ func transition_state(from: State, to: State) -> void:
 		State.FALL:
 			animation_player.play("fall");
 			if from in GROUND_STATES:
-				coyot_timer.start();
+				coyote_timer.start();
 				
 		State.LANDING:
 			animation_player.play("landing");
@@ -185,14 +185,14 @@ func hand_stand(delta: float) -> void:
 # 处理跳跃
 func hand_jump() -> bool:
 	# 跳跃条件
-	var can_jump := is_on_floor() or coyot_timer.time_left > 0;
+	var can_jump := is_on_floor() or coyote_timer.time_left > 0;
 	
 	# 判断起跳条件
 	if can_jump and jump_request_timer.time_left > 0:
 		velocity.y = JUMP_VELOCITY;
 		
 		# 跳跃完毕后关闭定时器
-		coyot_timer.stop();
+		coyote_timer.stop();
 		jump_request_timer.stop();
 		
 		return true; # true 表示主动跳跃
