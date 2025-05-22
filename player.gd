@@ -6,6 +6,7 @@ enum State {
 	JUMP,
 	FALL,
 	LANDING,
+	WALL_SLIDING,
 }
 
 # 位于地面的状态
@@ -25,10 +26,12 @@ var default_gravity := ProjectSettings.get("physics/2d/default_gravity") as floa
 # 第一帧判断符
 var is_first_tick := false;
 
-@onready var sprite_2d: Sprite2D = $Sprite2D;
+@onready var graphice: Node2D = $Graphice
 @onready var animation_player: AnimationPlayer = $AnimationPlayer;
 @onready var coyote_timer: Timer = $CoyotTimer;
 @onready var jump_request_timer: Timer = $JumpRequestTimer;
+@onready var hand_checker: RayCast2D = $Graphice/HandChecker
+@onready var foot_checker: RayCast2D = $Graphice/FootChecker
 
 # 输入监听
 func _unhandled_input(event: InputEvent) -> void:
@@ -88,6 +91,11 @@ func tick_physics(state: State, delta: float) -> void:
 		State.LANDING:
 			hand_stand(delta);
 			
+		State.WALL_SLIDING:
+			hand_move(default_gravity / 4, delta);
+			# 在贴墙滑动时，获取当前墙面的法线向量，根据向量值来处理贴墙翻转
+			graphice.scale.x = get_wall_normal().x;
+			
 	is_first_tick = false;
 	
 # 获取最新状态
@@ -123,10 +131,21 @@ func get_next_state(state: State) -> State:
 			# 处于地面时
 			if is_on_floor(): 
 				return State.LANDING if is_still else State.RUNNING;
+			# 处于贴墙时，且手部碰撞检查器和脚部碰撞检查器同时触发	
+			if is_on_wall() and hand_checker.is_colliding() and foot_checker.is_colliding():
+				return State.WALL_SLIDING;
 				
 		State.LANDING:
+			if not is_still:
+				return State.RUNNING;
 			if not animation_player.is_playing():
 				return State.IDEL;
+				
+		State.WALL_SLIDING:
+			if is_on_floor():
+				return State.IDEL;
+			if not is_on_wall():
+				return State.FALL;
 				
 	return state;
 	
@@ -154,6 +173,9 @@ func transition_state(from: State, to: State) -> void:
 				
 		State.LANDING:
 			animation_player.play("landing");
+			
+		State.WALL_SLIDING:
+			animation_player.play("wall_sliding");
 	
 	is_first_tick = true;
 
@@ -170,7 +192,7 @@ func hand_move(gravity: float, delta: float) -> void:
 	
 	if not is_zero_approx(direction):
 		# 判断 direction 是否翻转镜像角色贴图
-		sprite_2d.flip_h = direction < 0;
+		graphice.scale.x = -1 if direction < 0 else +1;
 	
 	move_and_slide();
 
