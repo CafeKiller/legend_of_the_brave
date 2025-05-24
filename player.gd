@@ -1,12 +1,13 @@
 extends CharacterBody2D
 
 enum State {
-	IDEL,
-	RUNNING,
-	JUMP,
-	FALL,
-	LANDING,
-	WALL_SLIDING,
+	IDEL, 			# 静置（默认）
+	RUNNING,		# 跑动
+	JUMP,			# 跳跃
+	FALL,			# 下落
+	LANDING,		# 完全下落，蹲下
+	WALL_SLIDING,	# 蹬墙滑动
+	WALL_JUMP,		# 蹬墙跳
 }
 
 # 位于地面的状态
@@ -16,9 +17,11 @@ const RUN_SPEED := 160.0;
 # 地面移动加速度
 const FLOOR_ACCELERATION := RUN_SPEED / 0.2;
 # 空中移动加速度
-const AIR_ACCELERATION := RUN_SPEED / 0.02;
-# 跳跃加速速度
+const AIR_ACCELERATION := RUN_SPEED / 0.1;
+# 跳跃加速度
 const JUMP_VELOCITY := -320.0;
+# 蹬墙跳加速度（向量）
+const WALL_JUMP_VELOCITY := Vector2(380, -300);
 
 
 # 重力 (此处读取项目设置中的默认值)
@@ -30,8 +33,9 @@ var is_first_tick := false;
 @onready var animation_player: AnimationPlayer = $AnimationPlayer;
 @onready var coyote_timer: Timer = $CoyotTimer;
 @onready var jump_request_timer: Timer = $JumpRequestTimer;
-@onready var hand_checker: RayCast2D = $Graphice/HandChecker
-@onready var foot_checker: RayCast2D = $Graphice/FootChecker
+@onready var hand_checker: RayCast2D = $Graphice/HandChecker;
+@onready var foot_checker: RayCast2D = $Graphice/FootChecker;
+@onready var state_machines: Node = $StateMachines;
 
 # 输入监听
 func _unhandled_input(event: InputEvent) -> void:
@@ -89,12 +93,20 @@ func tick_physics(state: State, delta: float) -> void:
 			hand_move(default_gravity, delta);
 			
 		State.LANDING:
-			hand_stand(delta);
+			hand_stand(delta, default_gravity);
 			
 		State.WALL_SLIDING:
 			hand_move(default_gravity / 4, delta);
 			# 在贴墙滑动时，获取当前墙面的法线向量，根据向量值来处理贴墙翻转
 			graphice.scale.x = get_wall_normal().x;
+			
+		State.WALL_JUMP:
+			if state_machines.state_time < 0.1:
+				hand_stand(delta, 0.0 if is_first_tick else default_gravity);
+				graphice.scale.x = get_wall_normal().x;
+			else:
+				hand_move(default_gravity, delta);
+			pass
 			
 	is_first_tick = false;
 	
@@ -106,6 +118,7 @@ func get_next_state(state: State) -> State:
 	var is_still := is_zero_approx(direction) and is_zero_approx(velocity.x);
 	
 	# 处理跳跃，并且获取当前跳跃状态： 是否为主动跳跃
+	# var should_jump := (state == State.WALL_JUMP) if hand_jump() else hand_wall_jump();
 	var should_jump := hand_jump();
 	if should_jump:
 		return State.JUMP;
@@ -132,7 +145,7 @@ func get_next_state(state: State) -> State:
 			if is_on_floor(): 
 				return State.LANDING if is_still else State.RUNNING;
 			# 处于贴墙时，且手部碰撞检查器和脚部碰撞检查器同时触发	
-			if is_on_wall() and hand_checker.is_colliding() and foot_checker.is_colliding():
+			if can_wall_slide():
 				return State.WALL_SLIDING;
 				
 		State.LANDING:
@@ -142,9 +155,17 @@ func get_next_state(state: State) -> State:
 				return State.IDEL;
 				
 		State.WALL_SLIDING:
+			if jump_request_timer.time_left > 0:
+				return State.WALL_JUMP;
 			if is_on_floor():
 				return State.IDEL;
 			if not is_on_wall():
+				return State.FALL;
+				
+		State.WALL_JUMP:
+			if can_wall_slide() and not is_first_tick:
+				return State.WALL_SLIDING;
+			if velocity.y >= 0:
 				return State.FALL;
 				
 	return state;
@@ -152,6 +173,13 @@ func get_next_state(state: State) -> State:
 	
 # 状态变化
 func transition_state(from: State, to: State) -> void:
+	
+	print("[%s] %s => %s" % [
+		Engine.get_physics_frames(),
+		State.keys()[from] if from != -1 else "<START>",
+		State.keys()[to],
+	]);
+	
 	
 	if from not in GROUND_STATES and to in GROUND_STATES:
 		coyote_timer.stop();
@@ -176,6 +204,12 @@ func transition_state(from: State, to: State) -> void:
 			
 		State.WALL_SLIDING:
 			animation_player.play("wall_sliding");
+		
+		State.WALL_JUMP:
+			animation_player.play("jump");
+			velocity = WALL_JUMP_VELOCITY;
+			velocity.x *= get_wall_normal().x;
+			
 	
 	is_first_tick = true;
 
@@ -197,9 +231,9 @@ func hand_move(gravity: float, delta: float) -> void:
 	move_and_slide();
 
 
-func hand_stand(delta: float) -> void:
+func hand_stand(delta: float, gravity: float = default_gravity) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, current_use_acceleration() * delta);
-	velocity.y += default_gravity * delta;
+	velocity.y += gravity * delta;
 	
 	move_and_slide();
 	
@@ -212,12 +246,27 @@ func hand_jump() -> bool:
 	# 判断起跳条件
 	if can_jump and jump_request_timer.time_left > 0:
 		velocity.y = JUMP_VELOCITY;
-		
+		print("11111111")
 		# 跳跃完毕后关闭定时器
 		coyote_timer.stop();
 		jump_request_timer.stop();
-		
 		return true; # true 表示主动跳跃
+		
+	return false;
+	
+# 处理蹬墙跳跃
+func hand_wall_jump() -> bool:
+	# 跳跃条件
+	var can_jump := is_on_floor() or coyote_timer.time_left > 0;
+	
+	# 判断起跳条件
+	if can_jump and jump_request_timer.time_left > 0:
+		velocity = WALL_JUMP_VELOCITY;
+		velocity.x *= get_wall_normal().x;
+		# 跳跃完毕后关闭定时器
+		jump_request_timer.stop();
+		return true; # true 表示主动跳跃
+		
 	return false;
 
 # 当前的使用的加速度	
@@ -226,6 +275,10 @@ func current_use_acceleration() -> float:
 		return FLOOR_ACCELERATION;
 	else:
 		return AIR_ACCELERATION;
+		
+# 判断： 处于贴墙时，且手部碰撞检查器和脚部碰撞检查器同时触发	
+func can_wall_slide() -> bool:
+	return is_on_wall() and hand_checker.is_colliding() and foot_checker.is_colliding();
 
 
 # 处理郊狼时间（郊狼时间即指：脱离地面边缘依旧存在跳跃时机）

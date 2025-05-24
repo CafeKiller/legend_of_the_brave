@@ -3,13 +3,15 @@ extends Node
 
 # 有限状态机
 
+# 当前状态
 var current_state: int = -1: 
 	set(v):
 		owner.transition_state(current_state, v);
 		current_state = v;
-		pass
+		state_time = 0; # 重置
 
-
+# 状态持续时间
+var state_time := 0.0;
 
 # 初始化
 func _ready() -> void:
@@ -28,3 +30,4 @@ func _physics_process(delta: float) -> void:
 	
 	# 将获取的新状态更新到父节点， 让父节点进行对应画面处理。	
 	owner.tick_physics(current_state, delta);
+	state_time += delta;
